@@ -25,8 +25,11 @@ public class TaskController {
 
     private final TaskService taskService;
     private final TrelloSyncService syncService;
+    private final com.meet2action.backend.service.WorkStatusService workStatusService;
 
-    public TaskController(TaskService taskService, TrelloSyncService syncService) {
+    public TaskController(TaskService taskService, TrelloSyncService syncService,
+                          com.meet2action.backend.service.WorkStatusService workStatusService) {
+        this.workStatusService = workStatusService;
         this.taskService = taskService;
         this.syncService = syncService;
     }
@@ -62,6 +65,12 @@ public class TaskController {
     @PostMapping("/{taskId}/sync")
     public TaskResponse sync(@PathVariable String taskId, @Valid @RequestBody SyncRequest request) {
         return syncService.sync(taskId, request.version());
+    }
+
+    /** Explicit user action: moves the task's EXISTING Trello card to the list for the chosen work status. */
+    @PostMapping("/{taskId}/work-status")
+    public TaskResponse workStatus(@PathVariable String taskId, @Valid @RequestBody Dtos.WorkStatusRequest request) {
+        return workStatusService.change(taskId, request.workStatus(), request.version());
     }
 
     /** Looks for an already-created card after an uncertain sync; creates nothing. */

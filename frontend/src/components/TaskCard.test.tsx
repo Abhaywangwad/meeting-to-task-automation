@@ -48,6 +48,8 @@ const base: Task = {
   sync_attempted_at: null,
   sync_error_code: null,
   sync_error_message: null,
+  work_status: 'TO_DO',
+  work_status_updated_at: null,
 }
 const transcript = 'Alex: please prepare the test report by Friday.'
 

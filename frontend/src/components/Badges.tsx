@@ -1,4 +1,4 @@
-import type { EvidenceStatus, ExtractionStatus, ReviewStatus, SyncStatus } from '../api/types'
+import type { EvidenceStatus, ExtractionStatus, ReviewStatus, SyncStatus, WorkStatus } from '../api/types'
 
 function Badge({ tone, children, title }: { tone: string; children: React.ReactNode; title?: string }) {
   return (
@@ -41,6 +41,22 @@ const SYNC: Record<SyncStatus, { tone: string; label: string }> = {
 
 export function SyncBadge({ status }: { status: SyncStatus }) {
   return <Badge tone={SYNC[status].tone}>{SYNC[status].label}</Badge>
+}
+
+const WORK: Record<WorkStatus, { tone: string; label: string }> = {
+  TO_DO: { tone: 'info', label: '\u{1F535} To Do' },
+  IN_PROGRESS: { tone: 'warn', label: '\u{1F7E0} In Progress' },
+  COMPLETED: { tone: 'ok', label: '✅ Completed' },
+}
+
+export const WORK_LABEL: Record<WorkStatus, string> = {
+  TO_DO: WORK.TO_DO.label,
+  IN_PROGRESS: WORK.IN_PROGRESS.label,
+  COMPLETED: WORK.COMPLETED.label,
+}
+
+export function WorkBadge({ status }: { status: WorkStatus }) {
+  return <Badge tone={WORK[status].tone} title="Work status (separate from approval and Trello sync)">{WORK[status].label}</Badge>
 }
 
 export function ExtractionBadge({ status }: { status: ExtractionStatus }) {

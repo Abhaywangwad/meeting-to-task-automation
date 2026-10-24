@@ -1,5 +1,5 @@
 import { AGENT_BASE_URL, ANALYZE_TIMEOUT_MS, API_BASE_URL, DEFAULT_TIMEOUT_MS, SYNC_TIMEOUT_MS } from '../config'
-import type { CreateMeetingResult, Meeting, ReadyInfo, ReviewStatus, Task, TaskPatch, TrelloStatus } from './types'
+import type { CreateMeetingResult, Meeting, ReadyInfo, ReviewStatus, Task, TaskPatch, TrelloStatus, WorkStatus } from './types'
 
 /** Any failed request. `status` 0 means the server was never reached (network error or timeout). */
 export class ApiError extends Error {
@@ -125,6 +125,14 @@ export const syncTask = (id: string, version: number) =>
 export const reconcileTask = (id: string) =>
   request<Task>(`/api/tasks/${encodeURIComponent(id)}/sync/reconcile`, {
     method: 'POST',
+    timeoutMs: SYNC_TIMEOUT_MS,
+  }).then((r) => r.data)
+
+/** Explicit work-status change: the backend moves the task's EXISTING Trello card, then confirms. Needs the current version. */
+export const setWorkStatus = (id: string, workStatus: WorkStatus, version: number) =>
+  request<Task>(`/api/tasks/${encodeURIComponent(id)}/work-status`, {
+    method: 'POST',
+    body: { work_status: workStatus, version },
     timeoutMs: SYNC_TIMEOUT_MS,
   }).then((r) => r.data)
 

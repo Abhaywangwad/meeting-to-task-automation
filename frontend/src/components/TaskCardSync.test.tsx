@@ -49,6 +49,8 @@ const pending: Task = {
   sync_attempted_at: null,
   sync_error_code: null,
   sync_error_message: null,
+  work_status: 'TO_DO',
+  work_status_updated_at: null,
 }
 const approved: Task = { ...pending, review_status: 'APPROVED', version: 5 }
 
@@ -71,7 +73,7 @@ describe('Sync to Trello button', () => {
   })
 
   it('is disabled with an explanation when the server reports Trello is not configured', async () => {
-    vi.mocked(api.getTrelloStatus).mockResolvedValue({ configured: false })
+    vi.mocked(api.getTrelloStatus).mockResolvedValue({ configured: false, work_lists_configured: false })
     render(
       <TrelloProvider>
         <TaskCard task={approved} onUpdated={() => {}} />

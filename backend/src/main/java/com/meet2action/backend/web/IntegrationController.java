@@ -18,6 +18,6 @@ public class IntegrationController {
 
     @GetMapping("/trello")
     public TrelloStatusResponse trello() {
-        return new TrelloStatusResponse(syncService.isConfigured());
+        return new TrelloStatusResponse(syncService.isConfigured(), syncService.isWorkListsConfigured());
     }
 }

@@ -437,6 +437,22 @@ Sync states: `NOT_SYNCED` → `SYNCING` → `SYNCED` | `FAILED` | `UNCERTAIN`.
 
 Content: card name = task title; description = task description, then Owner/Deadline only if present, a “Meeting evidence” quote section and the marker. A Trello due date is set only for an explicit ISO date (`2026-03-05`, treated as 12:00 UTC) or ISO date-time with offset; “Friday”, “next week” etc. leave it unset. Once a task is `SYNCING`, `UNCERTAIN` or `SYNCED` it can no longer be edited or rejected in Meet2Action (rejecting never deletes or archives a card). Editing a task after a `FAILED` sync resets it to pending review and `NOT_SYNCED`.
 
+### Three-stage workflow (To Do / In Progress / Completed)
+
+The Trello board has three lists: `🔵 To Do`, `🟠 In Progress`, `✅ Completed`. Configure their IDs (backend only, root `.env`):
+
+```
+TRELLO_TODO_LIST_ID=        # legacy TRELLO_LIST_ID still works as the To Do list when this is empty
+TRELLO_IN_PROGRESS_LIST_ID=
+TRELLO_COMPLETED_LIST_ID=
+```
+
+Three separate concepts, never mixed: **approval** (`review_status`), **work status** (`work_status`: `TO_DO`, `IN_PROGRESS`, `COMPLETED`) and **Trello sync** (`sync_status`). A task never becomes Completed because it was approved or synced.
+
+1. Approve a task, then click **Sync to Trello**: the card is created in *To Do* (work status `TO_DO`).
+2. In the task card use the **Work status** buttons. The dashboard calls `POST /api/tasks/{id}/work-status` with `{"work_status": "IN_PROGRESS" | "COMPLETED" | "TO_DO", "version": <current>}`; the backend validates, **moves the existing card** (`PUT /cards/{id}` with the saved card ID, never a new card), and only after Trello confirms records the new work status. The UI changes only after that confirmation.
+3. Rules: the task must be approved and already synced (otherwise `409 not_synced`: sync first); the version must be current; the target list must be configured (`503 trello_list_not_configured`). Concurrent changes are serialised by an atomic database claim, so a card is moved once. A failed or uncertain move (`work_move_uncertain`) leaves the work status unchanged and is safe to retry because moving a card to a list it is already in changes nothing.
+
 ### Honest limitations
 
 - Trello has no idempotency keys, so exactly-once creation is impossible. Duplicates are prevented by the atomic claim, by never auto-retrying a create, and by marker reconciliation, which cannot see a card a human moved off the list or archived.

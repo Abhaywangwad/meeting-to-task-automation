@@ -26,16 +26,20 @@ public class SchemaInitializer implements ApplicationRunner {
 
     private static final String SYNC_ENUM = "enum('NOT_SYNCED','SYNCING','SYNCED','FAILED','UNCERTAIN') NOT NULL";
 
-    /** Columns added to task_proposals after the first release (Trello sync). */
-    private static final Map<String, String> TASK_COLUMNS = Map.of(
-            "trello_card_id", "varchar(64) DEFAULT NULL",
-            "trello_card_url", "varchar(512) DEFAULT NULL",
-            "trello_list_id", "varchar(64) DEFAULT NULL",
-            "synced_at", "datetime(6) DEFAULT NULL",
-            "sync_attempted_at", "datetime(6) DEFAULT NULL",
-            "sync_error_code", "varchar(64) DEFAULT NULL",
-            "sync_error_message", "varchar(500) DEFAULT NULL",
-            "synced_version", "bigint DEFAULT NULL");
+    /** Columns added to task_proposals after the first release (Trello sync, work status). */
+    private static final Map<String, String> TASK_COLUMNS = Map.ofEntries(
+            Map.entry("trello_card_id", "varchar(64) DEFAULT NULL"),
+            Map.entry("trello_card_url", "varchar(512) DEFAULT NULL"),
+            Map.entry("trello_list_id", "varchar(64) DEFAULT NULL"),
+            Map.entry("synced_at", "datetime(6) DEFAULT NULL"),
+            Map.entry("sync_attempted_at", "datetime(6) DEFAULT NULL"),
+            Map.entry("sync_error_code", "varchar(64) DEFAULT NULL"),
+            Map.entry("sync_error_message", "varchar(500) DEFAULT NULL"),
+            Map.entry("synced_version", "bigint DEFAULT NULL"),
+            Map.entry("work_status", "enum('TO_DO','IN_PROGRESS','COMPLETED') NOT NULL DEFAULT 'TO_DO'"),
+            Map.entry("work_status_updated_at", "datetime(6) DEFAULT NULL"),
+            Map.entry("work_move_target", "enum('TO_DO','IN_PROGRESS','COMPLETED') DEFAULT NULL"),
+            Map.entry("work_move_started_at", "datetime(6) DEFAULT NULL"));
 
     private final DataSource dataSource;
 

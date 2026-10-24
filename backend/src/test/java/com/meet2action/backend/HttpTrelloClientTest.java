@@ -143,6 +143,39 @@ class HttpTrelloClientTest {
     }
 
     @Test
+    void movesAnExistingCardWithPutAndNeverPostsANewOne() {
+        server.expect(requestTo(BASE + "/cards/card9")).andExpect(method(HttpMethod.PUT))
+                .andExpect(header("Authorization", "OAuth oauth_consumer_key=\"KEY123\", oauth_token=\"TOKEN456\""))
+                .andExpect(jsonPath("$.idList").value("LISTB"))
+                .andRespond(withSuccess("{\"id\":\"card9\",\"idList\":\"LISTB\",\"name\":\"x\"}", MediaType.APPLICATION_JSON));
+        client.moveCard("card9", "LISTB");
+        server.verify();
+    }
+
+    @Test
+    void aMoveReplyThatDoesNotConfirmTheNewListIsNotSuccess() {
+        for (String body : new String[]{"{\"id\":\"card9\",\"idList\":\"OTHER\"}", "{\"id\":\"zzz\",\"idList\":\"LISTB\"}", "{}", "nope"}) {
+            server.reset();
+            server.expect(requestTo(BASE + "/cards/card9")).andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+            assertThat(failure(() -> client.moveCard("card9", "LISTB")).getKind()).as(body).isEqualTo(Kind.MALFORMED);
+        }
+    }
+
+    @Test
+    void moveErrorsAreMappedTruthfully() {
+        record Case(HttpStatus status, Kind kind) {}
+        for (Case c : new Case[]{new Case(HttpStatus.UNAUTHORIZED, Kind.AUTH), new Case(HttpStatus.NOT_FOUND, Kind.LIST_INVALID),
+                new Case(HttpStatus.TOO_MANY_REQUESTS, Kind.RATE_LIMITED), new Case(HttpStatus.BAD_GATEWAY, Kind.SERVER_ERROR)}) {
+            server.reset();
+            server.expect(requestTo(BASE + "/cards/card9")).andRespond(withStatus(c.status()));
+            assertThat(failure(() -> client.moveCard("card9", "LISTB")).getKind()).isEqualTo(c.kind());
+        }
+        server.reset();
+        server.expect(requestTo(BASE + "/cards/card9")).andRespond(withException(new SocketTimeoutException("Read timed out")));
+        assertThat(failure(() -> client.moveCard("card9", "LISTB")).getKind()).isEqualTo(Kind.TIMEOUT);
+    }
+
+    @Test
     void findsCardByExactMarkerOnTheList() {
         String marker = "[meet2action-task-id:abc]";
         server.expect(requestTo(BASE + "/lists/LIST1/cards?fields=id,url,desc")).andExpect(method(HttpMethod.GET))

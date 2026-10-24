@@ -37,6 +37,14 @@ const HINTS: Record<string, string> = {
   already_synced: 'This task is already synced to Trello and can no longer be changed here.',
   task_not_approved: 'Only approved tasks can be synced.',
   nothing_to_reconcile: 'There is no uncertain sync to check for this task.',
+  not_synced: 'This task has no Trello card yet. Click "Sync to Trello" first; a card can only be moved after it exists.',
+  trello_list_not_configured:
+    'The Trello lists for work statuses are not configured. Set TRELLO_TODO_LIST_ID, TRELLO_IN_PROGRESS_LIST_ID and TRELLO_COMPLETED_LIST_ID for the backend and restart it.',
+  work_move_in_progress: 'Another status change for this task is still running. Wait a moment and try again.',
+  work_move_uncertain:
+    'Trello did not confirm the move, so the card may or may not have moved. The status here was NOT changed. Check the board or try again; repeating a move is safe.',
+  trello_card_or_list_not_found: 'Trello could not find the card or the destination list. The card was not moved.',
+  work_move_failed: 'The card could not be moved and the work status was not changed.',
   network_error: 'Check that the backend is running and that VITE_API_BASE_URL is correct.',
   timeout: 'The request did not finish in time.',
 }

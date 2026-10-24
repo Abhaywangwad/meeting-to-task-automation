@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
-import { approveTask, getTask, reconcileTask, rejectTask, syncTask, updateTask } from '../api/client'
-import type { Task, TaskPatch } from '../api/types'
+import { approveTask, getTask, reconcileTask, rejectTask, setWorkStatus, syncTask, updateTask } from '../api/client'
+import type { Task, TaskPatch, WorkStatus } from '../api/types'
 import { describeError, type ErrorInfo } from '../errors'
 import { useTrello } from '../TrelloContext'
-import { EvidenceBadge, ReviewBadge, SyncBadge } from './Badges'
+import { EvidenceBadge, ReviewBadge, SyncBadge, WORK_LABEL, WorkBadge } from './Badges'
+
+const WORK_ORDER: WorkStatus[] = ['TO_DO', 'IN_PROGRESS', 'COMPLETED']
 import { EvidenceQuote } from './EvidenceQuote'
 
 interface Props {
@@ -14,7 +16,7 @@ interface Props {
   onUpdated: (task: Task) => void
 }
 
-type Action = 'approve' | 'reject' | 'save' | 'reload' | 'sync' | 'reconcile'
+type Action = 'approve' | 'reject' | 'save' | 'reload' | 'sync' | 'reconcile' | 'work'
 
 /** Only ever render http(s) links coming from the server. */
 const safeUrl = (u: string | null) => (u && /^https:\/\//i.test(u) ? u : null)
@@ -47,6 +49,12 @@ export function TaskCard({ task, transcript, onUpdated }: Props) {
   else if (unverified) syncBlocker = 'Tasks with unverified evidence cannot be synced.'
   else if (trello.configured === false) syncBlocker = 'Trello is not configured on the server.'
   const canSync = syncBlocker === null
+
+  // Work status (To Do / In Progress / Completed) moves the EXISTING Trello card; it needs a synced card.
+  let workBlocker: string | null = null
+  if (!approved) workBlocker = 'Approve the task first.'
+  else if (sync !== 'SYNCED' || !task.trello_card_id) workBlocker = 'Sync to Trello first: the card must exist before it can be moved.'
+  else if (trello.workListsConfigured === false) workBlocker = 'The In Progress / Completed Trello lists are not configured on the server.'
 
   async function run(
     action: Action,
@@ -128,6 +136,7 @@ export function TaskCard({ task, transcript, onUpdated }: Props) {
           <ReviewBadge status={task.review_status} />
           <EvidenceBadge status={task.evidence_status} />
           <SyncBadge status={task.sync_status} />
+          {approved && <WorkBadge status={task.work_status} />}
         </div>
       </header>
 
@@ -209,6 +218,43 @@ export function TaskCard({ task, transcript, onUpdated }: Props) {
         )}
       </section>
 
+      {approved && !editing && (
+        <section aria-label="Work status" className="work-status">
+          <h4>Work status</h4>
+          <div className="segmented" role="group" aria-label="Set work status">
+            {WORK_ORDER.map((w) => (
+              <button
+                key={w}
+                type="button"
+                aria-pressed={task.work_status === w}
+                className={task.work_status === w ? 'seg active' : 'seg'}
+                disabled={disabled || workBlocker !== null || task.work_status === w}
+                title={workBlocker ?? `Move the existing Trello card to ${WORK_LABEL[w]}`}
+                onClick={() =>
+                  run(
+                    'work',
+                    () => setWorkStatus(task.id, w, task.version),
+                    () => `Moved the Trello card to ${WORK_LABEL[w]}.`,
+                    true,
+                  )
+                }
+              >
+                {WORK_LABEL[w]}
+              </button>
+            ))}
+          </div>
+          {busy === 'work' && (
+            <p className="muted small" role="status">
+              Moving the Trello card…
+            </p>
+          )}
+          <p className="muted small">
+            {workBlocker
+              ? `Status control unavailable: ${workBlocker}`
+              : 'Changing the status moves the existing Trello card; no card is created. It changes here only after Trello confirms.'}
+          </p>
+        </section>
+      )}
       {sync === 'SYNCED' && (
         <p className="alert alert-ok" role="status">
           Synced to Trello

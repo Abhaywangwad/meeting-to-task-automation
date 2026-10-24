@@ -60,6 +60,22 @@ public class HttpTrelloClient implements TrelloClient {
     }
 
     @Override
+    public void moveCard(String cardId, String listId) {
+        Map<String, Object> body = Map.of("idList", listId);
+        Raw raw = send(() -> restClient.put().uri("/cards/{id}", cardId).contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", authHeader()).accept(MediaType.APPLICATION_JSON).body(body)
+                .exchange((req, res) -> new Raw(res.getStatusCode().value(), readBody(res.getBody()))));
+        checkStatus(raw.status());
+        JsonNode json = parse(raw.body());
+        // Trust only a reply that names the card and the list it is now in.
+        if (!cardId.equals(text(json, "id")) || !listId.equals(text(json, "idList"))) {
+            log.warn("Trello move answered {} but the card/list in the reply do not match the request", raw.status());
+            throw new TrelloException(TrelloException.Kind.MALFORMED,
+                    "Trello answered the move without confirming the new list.");
+        }
+    }
+
+    @Override
     public Optional<Card> findCardByMarker(String listId, String marker) {
         Raw raw = send(() -> restClient.get().uri("/lists/{id}/cards?fields=id,url,desc", listId)
                 .header("Authorization", authHeader()).accept(MediaType.APPLICATION_JSON)

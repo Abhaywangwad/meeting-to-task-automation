@@ -14,6 +14,14 @@ public interface TrelloClient {
      */
     Card createCard(String listId, String name, String description, String dueIso);
 
+    /**
+     * Moves an EXISTING card to another list (PUT /cards/{id}). It never creates a card, and repeating it is
+     * harmless: setting the same list again changes nothing.
+     *
+     * @throws TrelloException on any failure
+     */
+    void moveCard(String cardId, String listId);
+
     /** Looks through the open cards of the list for one whose description contains the exact marker. */
     Optional<Card> findCardByMarker(String listId, String marker);
 }

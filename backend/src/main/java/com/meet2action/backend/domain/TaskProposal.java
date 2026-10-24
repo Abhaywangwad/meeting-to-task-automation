@@ -116,6 +116,22 @@ public class TaskProposal {
     @Column(name = "synced_version")
     private Long syncedVersion;
 
+    // ---- Work status (To Do / In Progress / Completed), separate from review and sync status ----
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_status", length = 16, nullable = false)
+    private WorkStatus workStatus = WorkStatus.TO_DO;
+
+    @Column(name = "work_status_updated_at")
+    private Instant workStatusUpdatedAt;
+
+    /** Set only while a Trello list move is in flight (claimed atomically); cleared when it finishes or fails. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_move_target", length = 16)
+    private WorkStatus workMoveTarget;
+
+    @Column(name = "work_move_started_at")
+    private Instant workMoveStartedAt;
+
     protected TaskProposal() {}
 
     public TaskProposal(Meeting meeting, int position, String title, String description, String owner,
@@ -191,6 +207,20 @@ public class TaskProposal {
         this.syncErrorMessage = message == null ? null : message.substring(0, Math.min(message.length(), 500));
     }
 
+    /** The Trello move succeeded: record the new work status and release the move claim. */
+    public void finishWorkMove(WorkStatus target) {
+        this.workStatus = target;
+        this.workStatusUpdatedAt = Instant.now();
+        this.workMoveTarget = null;
+        this.workMoveStartedAt = null;
+    }
+
+    /** The move failed or was abandoned: keep the old work status and release the claim. */
+    public void abandonWorkMove() {
+        this.workMoveTarget = null;
+        this.workMoveStartedAt = null;
+    }
+
     /** An edit after a failed sync starts over: the old failure no longer describes this content. */
     public void clearSyncFailure() {
         if (this.syncStatus == SyncStatus.FAILED) {
@@ -234,4 +264,8 @@ public class TaskProposal {
     public String getSyncErrorCode() { return syncErrorCode; }
     public String getSyncErrorMessage() { return syncErrorMessage; }
     public Long getSyncedVersion() { return syncedVersion; }
+    public WorkStatus getWorkStatus() { return workStatus; }
+    public Instant getWorkStatusUpdatedAt() { return workStatusUpdatedAt; }
+    public WorkStatus getWorkMoveTarget() { return workMoveTarget; }
+    public Instant getWorkMoveStartedAt() { return workMoveStartedAt; }
 }

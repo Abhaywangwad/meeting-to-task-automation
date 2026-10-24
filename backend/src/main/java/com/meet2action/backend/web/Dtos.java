@@ -7,6 +7,7 @@ import com.meet2action.backend.domain.MeetingInsight;
 import com.meet2action.backend.domain.ReviewStatus;
 import com.meet2action.backend.domain.SyncStatus;
 import com.meet2action.backend.domain.TaskProposal;
+import com.meet2action.backend.domain.WorkStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -45,7 +46,12 @@ public final class Dtos {
     public record SyncRequest(@NotNull(message = "is required") Long version) {}
 
     /** Only whether Trello is configured; never any credential or identifier. */
-    public record TrelloStatusResponse(boolean configured) {}
+    public record TrelloStatusResponse(boolean configured, boolean workListsConfigured) {}
+
+    /** Explicit request to move a synced task's Trello card to the list for the given work status. */
+    public record WorkStatusRequest(
+            @NotNull(message = "is required") WorkStatus workStatus,
+            @NotNull(message = "is required") Long version) {}
 
     public record TaskResponse(
             String id,
@@ -73,7 +79,9 @@ public final class Dtos {
             Instant syncedAt,
             Instant syncAttemptedAt,
             String syncErrorCode,
-            String syncErrorMessage) {
+            String syncErrorMessage,
+            WorkStatus workStatus,
+            Instant workStatusUpdatedAt) {
 
         public static TaskResponse from(TaskProposal t) {
             return new TaskResponse(t.getId(), t.getMeeting().getId(), t.getTitle(), t.getDescription(),
@@ -82,7 +90,7 @@ public final class Dtos {
                     t.getEvidenceMatch(), t.getConfidence(), t.getReviewStatus(), t.getSyncStatus(),
                     t.getVersion(), t.getCreatedAt(), t.getUpdatedAt(), t.getApprovedAt(), t.getRejectedAt(),
                     t.getTrelloCardId(), t.getTrelloCardUrl(), t.getSyncedAt(), t.getSyncAttemptedAt(),
-                    t.getSyncErrorCode(), t.getSyncErrorMessage());
+                    t.getSyncErrorCode(), t.getSyncErrorMessage(), t.getWorkStatus(), t.getWorkStatusUpdatedAt());
         }
     }
 

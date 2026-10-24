@@ -30,8 +30,8 @@ describe('trello endpoints', () => {
   })
 
   it('reads only the configured flag from the integration status endpoint', async () => {
-    const f = mockFetch(() => json({ configured: false }))
-    expect(await getTrelloStatus()).toEqual({ configured: false })
+    const f = mockFetch(() => json({ configured: false, work_lists_configured: false }))
+    expect(await getTrelloStatus()).toEqual({ configured: false, work_lists_configured: false })
     expect((f.mock.calls[0] as unknown as [string])[0]).toBe('http://localhost:8080/api/integrations/trello')
   })
 
@@ -41,5 +41,18 @@ describe('trello endpoints', () => {
     for (const call of f.mock.calls) {
       expect((call as unknown as [string])[0]).not.toContain('trello.com')
     }
+  })
+})
+
+describe('work status endpoint', () => {
+  it('POSTs the target status and current version to /work-status on the backend only', async () => {
+    const f = mockFetch(() => json({ id: 't1', work_status: 'IN_PROGRESS' }))
+    const { setWorkStatus } = await import('./client')
+    await setWorkStatus('t1', 'IN_PROGRESS', 7)
+    const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('http://localhost:8080/api/tasks/t1/work-status')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(String(init.body))).toEqual({ work_status: 'IN_PROGRESS', version: 7 })
+    expect(url).not.toContain('trello.com')
   })
 })

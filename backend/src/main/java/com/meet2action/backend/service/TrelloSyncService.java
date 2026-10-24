@@ -59,6 +59,10 @@ public class TrelloSyncService {
         return props.isConfigured();
     }
 
+    public boolean isWorkListsConfigured() {
+        return props.isWorkListsConfigured();
+    }
+
     public TaskResponse sync(String taskId, long version) {
         TaskProposal t = load(taskId);
 
@@ -111,8 +115,8 @@ public class TrelloSyncService {
         log.info("Creating Trello card for task {}", taskId);
 
         try {
-            TrelloClient.Card created = trello.createCard(props.getListId(), card.name(), card.description(), card.dueIso());
-            persist(taskId, t2 -> t2.markSynced(created.id(), created.url(), props.getListId(), approvedVersion));
+            TrelloClient.Card created = trello.createCard(props.effectiveTodoListId(), card.name(), card.description(), card.dueIso());
+            persist(taskId, t2 -> t2.markSynced(created.id(), created.url(), props.effectiveTodoListId(), approvedVersion));
             log.info("Task {} synced to Trello card {}", taskId, created.id());
             return view(taskId);
         } catch (TrelloException e) {
@@ -153,10 +157,10 @@ public class TrelloSyncService {
         long approvedVersion = load(taskId).getVersion();
         String marker = TrelloCardContent.marker(taskId);
         try {
-            Optional<TrelloClient.Card> found = trello.findCardByMarker(props.getListId(), marker);
+            Optional<TrelloClient.Card> found = trello.findCardByMarker(props.effectiveTodoListId(), marker);
             if (found.isPresent()) {
                 TrelloClient.Card c = found.get();
-                persist(taskId, t2 -> t2.markSynced(c.id(), c.url(), props.getListId(), approvedVersion));
+                persist(taskId, t2 -> t2.markSynced(c.id(), c.url(), props.effectiveTodoListId(), approvedVersion));
                 log.info("Reconciled task {} with existing Trello card {}", taskId, c.id());
             } else {
                 persist(taskId, t2 -> t2.markSyncFailed("card_not_found",

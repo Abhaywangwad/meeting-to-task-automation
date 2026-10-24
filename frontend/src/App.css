@@ -175,3 +175,8 @@ mark { background: var(--warn-bg); color: var(--warn); padding: 0 2px; border-ra
 @media (prefers-reduced-motion: reduce) {
   .dot-loading, .spinner { animation: none; }
 }
+
+.badge-info { color: var(--info); background: var(--info-bg); }
+.work-status { margin-top: 0.75rem; }
+.segmented { display: inline-flex; flex-wrap: wrap; gap: 0.4rem; }
+.seg.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; opacity: 1; }

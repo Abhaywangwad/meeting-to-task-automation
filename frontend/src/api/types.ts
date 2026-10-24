@@ -3,6 +3,7 @@
 export type EvidenceStatus = 'VERIFIED' | 'UNVERIFIED'
 export type ReviewStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
 export type SyncStatus = 'NOT_SYNCED' | 'SYNCING' | 'SYNCED' | 'FAILED' | 'UNCERTAIN'
+export type WorkStatus = 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED'
 export type ExtractionStatus = 'PENDING' | 'COMPLETED' | 'FAILED'
 
 export interface Task {
@@ -32,11 +33,15 @@ export interface Task {
   sync_attempted_at: string | null
   sync_error_code: string | null
   sync_error_message: string | null
+  work_status: WorkStatus
+  work_status_updated_at: string | null
 }
 
 /** GET /api/integrations/trello: only whether the backend has Trello credentials; never the credentials. */
 export interface TrelloStatus {
   configured: boolean
+  /** true when the In Progress and Completed lists are configured too (needed to move cards). */
+  work_lists_configured: boolean
 }
 
 export interface Insight {

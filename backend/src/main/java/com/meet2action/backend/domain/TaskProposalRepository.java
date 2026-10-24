@@ -35,6 +35,25 @@ public interface TaskProposalRepository extends JpaRepository<TaskProposal, Stri
             """)
     int claimForSync(@Param("id") String id, @Param("version") long version, @Param("now") Instant now);
 
+    /**
+     * Atomically claims the single in-flight Trello list move for a task. Only matches an approved task that has a
+     * synced card, is at the expected version, is not already in the target state, and has no live move claim
+     * (a claim older than {@code staleBefore} counts as abandoned). Returns 1 for the winner, 0 otherwise.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update TaskProposal t set t.workMoveTarget = :target, t.workMoveStartedAt = :now,
+                t.updatedAt = :now, t.version = t.version + 1
+            where t.id = :id and t.version = :version
+              and t.reviewStatus = com.meet2action.backend.domain.ReviewStatus.APPROVED
+              and t.syncStatus = com.meet2action.backend.domain.SyncStatus.SYNCED
+              and t.trelloCardId is not null
+              and t.workStatus <> :target
+              and (t.workMoveTarget is null or t.workMoveStartedAt < :staleBefore)
+            """)
+    int claimForMove(@Param("id") String id, @Param("version") long version, @Param("target") WorkStatus target,
+                     @Param("now") Instant now, @Param("staleBefore") Instant staleBefore);
+
     /** Claims reconciliation for an UNCERTAIN task, or a SYNCING one whose attempt is stale (crashed). */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
