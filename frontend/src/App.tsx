@@ -104,17 +104,18 @@ function Dashboard() {
   return (
     <div className="container">
       <header className="hero">
+        <div className="hero-badge">✦ AI MEETING INTELLIGENCE · HACKATHON 2026</div>
         <h1>Meet2Action</h1>
         <p className="tagline">Turn meeting conversations into evidence-backed commitments.</p>
-        <p className="muted">
-          Paste a meeting transcript. AI proposes tasks, each backed by a quote from the transcript. You review, edit and
-          approve; nothing is approved automatically.
-        </p>
-        <ol className="workflow" aria-label="Workflow">
-          {['Transcript', 'AI Extraction', 'Evidence Review', 'Human Approval', 'Trello Sync (coming later)'].map((s) => (
-            <li key={s}>{s}</li>
-          ))}
-        </ol>
+
+        <div className="workflow-wrapper">
+          <span className="workflow-heading">AUTOMATION PIPELINE:</span>
+          <ol className="workflow" aria-label="Workflow">
+            {['1. Transcript Input', '2. AI Agent Extraction', '3. Evidence Grounding', '4. Human Approval', '5. Trello Kanban Sync'].map((s) => (
+              <li key={s}>{s}</li>
+            ))}
+          </ol>
+        </div>
       </header>
 
       <ServiceStatus />
@@ -127,10 +128,10 @@ function Dashboard() {
 
       <nav className="tabs" aria-label="Views">
         <button type="button" className={tab === 'meeting' ? 'tab active' : 'tab'} aria-pressed={tab === 'meeting'} onClick={() => setTab('meeting')}>
-          Current meeting
+          <span className="tab-icon">📊</span> Current meeting results
         </button>
         <button type="button" className={tab === 'tasks' ? 'tab active' : 'tab'} aria-pressed={tab === 'tasks'} onClick={() => setTab('tasks')}>
-          All tasks
+          <span className="tab-icon">📋</span> All tasks repository
         </button>
       </nav>
 
@@ -144,9 +145,16 @@ function Dashboard() {
             onTaskUpdated={onTaskUpdated}
           />
         ) : (
-          <p className="empty">No meeting yet. Paste a transcript above and click “Analyze Meeting”.</p>
+          <div className="empty-state-card">
+            <div className="empty-state-icon">💡</div>
+            <h3>Ready for Meeting Analysis</h3>
+            <p className="muted">
+              Paste your team's meeting transcript in the box above and click <strong>“Analyze Meeting”</strong> (or click <strong>“Insert sample transcript”</strong>) to see automated AI extraction and quote verification in action.
+            </p>
+          </div>
         ))}
       {tab === 'tasks' && <TasksPanel onOpenMeeting={openMeeting} onTaskUpdated={onTaskUpdated} />}
     </div>
   )
 }
+

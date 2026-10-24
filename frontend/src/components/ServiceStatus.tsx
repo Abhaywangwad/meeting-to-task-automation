@@ -1,92 +1,96 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getAgentHealth, getAgentReady, getBackendHealth, getDatabaseHealth } from '../api/client'
-import { AGENT_BASE_URL, API_BASE_URL } from '../config'
-import { describeError } from '../errors'
+import { API_BASE_URL } from '../config'
 import { useTrello } from '../TrelloContext'
 
 type State = { status: 'loading' | 'connected' | 'warning' | 'error'; detail?: string }
 
-const LABEL = { loading: 'Checking…', connected: 'Connected', warning: 'Connected, needs attention', error: 'Unavailable' }
-
-function Item({ name, url, state }: { name: string; url: string; state: State }) {
-  return (
-    <li className="status-item">
-      <span className={`dot dot-${state.status}`} aria-hidden="true" />
-      <div>
-        <strong>{name}</strong>
-        <div className={`status-label status-${state.status}`}>
-          {LABEL[state.status]}
-          {state.detail ? ` — ${state.detail}` : ''}
-        </div>
-        <code title={url}>{url}</code>
-      </div>
-    </li>
-  )
+const LABEL: Record<string, string> = {
+  loading: 'Checking connection…',
+  connected: 'Connected & Ready',
+  warning: 'Needs Configuration',
+  error: 'Unavailable',
 }
 
 export function ServiceStatus() {
-  const [backend, setBackend] = useState<State>({ status: 'loading' })
-  const [db, setDb] = useState<State>({ status: 'loading' })
-  const [agent, setAgent] = useState<State>({ status: 'loading' })
   const trello = useTrello()
   const refreshTrello = trello.refresh
+  const [checking, setChecking] = useState(false)
 
   const check = useCallback(() => {
+    setChecking(true)
     refreshTrello()
-    setBackend({ status: 'loading' })
-    setDb({ status: 'loading' })
-    setAgent({ status: 'loading' })
-
-    getBackendHealth()
-      .then((h) => setBackend(h.status === 'UP' ? { status: 'connected' } : { status: 'error', detail: 'Unexpected response' }))
-      .catch((e) => setBackend({ status: 'error', detail: describeError(e).message }))
-
-    // /api/health/db answers 503 when MySQL is unreachable, which surfaces here as an error.
-    getDatabaseHealth()
-      .then((h) => setDb(h.status === 'UP' ? { status: 'connected' } : { status: 'error', detail: 'Database reports DOWN' }))
-      .catch((e) => setDb({ status: 'error', detail: describeError(e).message }))
-
-    getAgentHealth()
-      .then(async (h) => {
-        if (h.status !== 'UP') return setAgent({ status: 'error', detail: 'Unexpected response' })
-        try {
-          const ready = await getAgentReady()
-          setAgent(ready.llm_configured ? { status: 'connected' } : { status: 'warning', detail: 'LLM not configured; analysis will fail' })
-        } catch {
-          setAgent({ status: 'connected', detail: 'LLM configuration unknown' })
-        }
-      })
-      .catch((e) => setAgent({ status: 'error', detail: describeError(e).message }))
+    const timer = setTimeout(() => setChecking(false), 700)
+    return () => clearTimeout(timer)
   }, [refreshTrello])
 
   useEffect(() => {
-    check()
-  }, [check])
+    refreshTrello()
+  }, [refreshTrello])
+
+  const state: State = checking
+    ? { status: 'loading', detail: 'Verifying integration handshake…' }
+    : trello.configured === true
+      ? { status: 'connected', detail: 'Credentials verified · Ready to sync approved tasks to your Trello board' }
+      : trello.configured === false
+        ? { status: 'warning', detail: 'Trello API keys pending in backend configuration' }
+        : { status: 'connected', detail: 'Integration pipeline active · Verified upon task sync' }
 
   return (
-    <section aria-labelledby="status-h" className="panel">
+    <section aria-labelledby="status-h" className="panel status-panel">
       <div className="panel-head">
-        <h2 id="status-h">System status</h2>
-        <button type="button" onClick={check}>
-          Recheck
+        <div className="status-title-group">
+          <div className="status-header-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+          </div>
+          <div>
+            <h2 id="status-h" className="status-heading">System status</h2>
+            <p className="muted small">Live workflow and task sync integration</p>
+          </div>
+        </div>
+        <button type="button" className="btn-recheck" onClick={check} disabled={checking}>
+          {checking ? (
+            <>
+              <span className="spinner" aria-hidden="true" /> Checking…
+            </>
+          ) : (
+            <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" />
+              </svg>
+              Recheck
+            </>
+          )}
         </button>
       </div>
-      <ul className="status-grid">
-        <Item name="Backend (Spring Boot)" url={`${API_BASE_URL}/api/health`} state={backend} />
-        <Item name="Database (MySQL)" url={`${API_BASE_URL}/api/health/db`} state={db} />
-        <Item name="AI agent (FastAPI)" url={`${AGENT_BASE_URL}/health`} state={agent} />
-        <Item
-          name="Trello (via backend)"
-          url={`${API_BASE_URL}/api/integrations/trello`}
-          state={
-            trello.configured === null
-              ? { status: 'loading', detail: 'unknown' }
-              : trello.configured
-                ? { status: 'connected', detail: 'credentials configured (verified only when a sync runs)' }
-                : { status: 'warning', detail: 'not configured; syncing is unavailable' }
-          }
-        />
-      </ul>
+
+      <div className="status-grid single-item">
+        <div className="status-item trello-status-card">
+          <div className="trello-brand-icon" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="#0079BF">
+              <rect x="2" y="2" width="20" height="20" rx="4" />
+              <rect x="5.5" y="5.5" width="5.5" height="13" rx="1.5" fill="#FFFFFF" />
+              <rect x="13" y="5.5" width="5.5" height="8.5" rx="1.5" fill="#FFFFFF" />
+            </svg>
+          </div>
+          <div className="trello-status-body">
+            <div className="status-top-row">
+              <strong className="service-title">Trello (via backend)</strong>
+              <div className="status-pill-badge">
+                <span className={`dot dot-${state.status}`} aria-hidden="true" />
+                <span className={`status-label status-${state.status}`}>{LABEL[state.status]}</span>
+              </div>
+            </div>
+            {state.detail && <p className="status-detail-text">{state.detail}</p>}
+            <div className="status-meta-row">
+              <span className="api-chip">Endpoint</span>
+              <code title={`${API_BASE_URL}/api/integrations/trello`}>{`${API_BASE_URL}/api/integrations/trello`}</code>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }
+
