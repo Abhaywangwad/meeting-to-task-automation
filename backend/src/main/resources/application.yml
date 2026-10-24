@@ -1,0 +1,59 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: meet2action-backend
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:meet2action}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USER:}
+    password: ${MYSQL_PASSWORD:}
+    hikari:
+      # Let the app start even when MySQL is down, so /api/health still works.
+      initialization-fail-timeout: -1
+      connection-timeout: 3000
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Schema is created by SchemaInitializer (db/schema-mysql.sql), not by Hibernate,
+      # so the app can boot while MySQL is down. Use JPA_DDL_AUTO=validate to check entities vs schema.
+      ddl-auto: ${JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        # Explicit dialect + no metadata access lets the app boot while MySQL is down.
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
+        boot:
+          allow_jdbc_metadata_access: false
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      # Unknown request fields (e.g. evidence_verified) are rejected, not silently ignored.
+      fail-on-unknown-properties: true
+
+app:
+  schema:
+    init: ${SCHEMA_INIT:true}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  agent:
+    url: ${AGENT_SERVICE_URL:http://localhost:8000}
+    connect-timeout-seconds: ${AGENT_CONNECT_TIMEOUT_SECONDS:5}
+    read-timeout-seconds: ${AGENT_READ_TIMEOUT_SECONDS:60}
+  trello:
+    # Backend-only. Leave empty to run without Trello; syncing then answers 503 trello_not_configured.
+    api-key: ${TRELLO_API_KEY:}
+    token: ${TRELLO_TOKEN:}
+    list-id: ${TRELLO_LIST_ID:}
+    base-url: ${TRELLO_API_BASE_URL:https://api.trello.com/1}
+    connect-timeout-seconds: ${TRELLO_CONNECT_TIMEOUT_SECONDS:5}
+    read-timeout-seconds: ${TRELLO_READ_TIMEOUT_SECONDS:15}
+    stale-sync-seconds: ${TRELLO_STALE_SYNC_SECONDS:120}
+  meetings:
+    # Identical transcript resubmitted within this window returns the existing meeting.
+    dedupe-window-seconds: ${MEETING_DEDUPE_WINDOW_SECONDS:30}
+
+logging:
+  level:
+    com.meet2action: INFO

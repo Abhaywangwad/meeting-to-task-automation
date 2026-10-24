@@ -1,0 +1,22 @@
+# Isolated tests use an in-memory H2 database (MySQL compatibility mode).
+# This is NOT MySQL: tests using this profile do not prove anything about MySQL behaviour.
+spring:
+  datasource:
+    url: jdbc:h2:mem:${random.uuid};MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        boot:
+          allow_jdbc_metadata_access: true
+
+app:
+  schema:
+    init: false
+  meetings:
+    dedupe-window-seconds: 0
